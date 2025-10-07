@@ -5,33 +5,27 @@ const chromium = require('@sparticuz/chromium');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// Menggunakan process.env.PORT untuk Vercel
+const PORT = process.env.PORT || 3000; 
 
-// Variabel Global untuk menyimpan log terbaru (max 50 baris)
+// --- Log Management ---
 let logHistory = [];
 const MAX_LOGS = 50;
 
-/**
- * Fungsi pembantu untuk mencatat log ke konsol dan ke history log.
- */
 function logToHistory(message) {
     const timestamp = new Date().toLocaleTimeString('id-ID');
     const fullMessage = `[${timestamp}] ${message}`;
     
-    // Tampilkan di konsol server
     console.log(fullMessage); 
-    
-    // Simpan di history
     logHistory.push(fullMessage);
     
-    // Batasi jumlah log
     if (logHistory.length > MAX_LOGS) {
-        logHistory.shift(); // Hapus log terlama
+        logHistory.shift(); 
     }
 }
+// -----------------------
 
-
-// Middleware untuk melayani file statis dari folder 'public'
+// Melayani file statis dari folder 'public'
 app.use(express.static(path.join(__dirname, 'public')));
 
 /**
@@ -42,10 +36,11 @@ async function extractDirectLink(shareUrl) {
     logToHistory(`Memulai ekstraksi untuk: ${shareUrl}`);
     
     try {
-        // --- Vercel/Serverless Fix ---
-        logToHistory('Meluncurkan Chromium...');
+        // --- Solusi Serverless/Chromium Fix ---
+        logToHistory('Meluncurkan Chromium dengan konfigurasi Vercel...');
         browser = await puppeteer.launch({
-            args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+            // Argumen harus mencakup --no-sandbox
+            args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security'], 
             defaultViewport: chromium.defaultViewport,
             executablePath: await chromium.executablePath(),
             headless: chromium.headless,
@@ -64,7 +59,8 @@ async function extractDirectLink(shareUrl) {
             const url = request.url();
             const method = request.method();
             
-            if (method === 'GET' && url.includes('download')) { 
+            // Logika: mencari URL GET yang mengandung 'download'
+            if (method === 'GET' && url.includes('download') && !url.includes('.css') && !url.includes('.js')) { 
                  potentialLinks.push(url);
                  logToHistory(`[INTERCEPTED] Potensi link ditemukan: ${url.substring(0, 80)}...`);
             }
@@ -75,15 +71,16 @@ async function extractDirectLink(shareUrl) {
         logToHistory('Menavigasi ke halaman sharing...');
         await page.goto(shareUrl, { waitUntil: 'domcontentloaded' });
 
-        const downloadButtonSelector = '.x-btn-main.g-btn'; // Contoh selector
+        // Contoh Selector Terabox
+        const downloadButtonSelector = '.x-btn-main.g-btn'; 
         
         try {
-            logToHistory(`Menunggu selector tombol: ${downloadButtonSelector}`);
+            logToHistory(`Menunggu tombol unduh: ${downloadButtonSelector}`);
             await page.waitForSelector(downloadButtonSelector, { timeout: 15000 });
             await page.click(downloadButtonSelector);
-            logToHistory('Tombol unduh berhasil diklik.');
+            logToHistory('Tombol unduh berhasil diklik. Menunggu tautan muncul...');
             
-            await page.waitForTimeout(5000); 
+            await page.waitForTimeout(5000); // Beri waktu untuk permintaan jaringan selesai
             
         } catch (error) {
             logToHistory('Peringatan: Tombol unduh tidak ditemukan atau error klik.');
@@ -101,8 +98,8 @@ async function extractDirectLink(shareUrl) {
         return finalLink;
 
     } catch (error) {
-        logToHistory(`FATAL ERROR saat scraping: ${error.message}`);
-        throw new Error("Gagal mengekstrak tautan.");
+        logToHistory(`FATAL ERROR saat scraping: ${error.message.substring(0, 150)}...`);
+        throw new Error(`Gagal mengekstrak tautan: ${error.message.substring(0, 50)}... Cek log server.`);
     } finally {
         if (browser) {
             await browser.close();
@@ -116,6 +113,7 @@ async function extractDirectLink(shareUrl) {
 // ------------------------------------
 app.get('/api/download', async (req, res) => {
     const shareLink = req.query.link;
+    
     if (!shareLink || !shareLink.includes('terabox')) {
         return res.status(400).json({ error: 'Harap berikan tautan Terabox yang valid.' });
     }
@@ -125,7 +123,7 @@ app.get('/api/download', async (req, res) => {
         if (directLink) {
             res.json({ success: true, directLink: directLink });
         } else {
-            res.status(500).json({ success: false, error: 'Gagal mendapatkan tautan unduhan. Cek log.' });
+            res.status(500).json({ success: false, error: 'Gagal mendapatkan tautan unduhan. Cek log server.' });
         }
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -136,7 +134,6 @@ app.get('/api/download', async (req, res) => {
 // Endpoint API untuk Log
 // ------------------------------------
 app.get('/api/logs', (req, res) => {
-    // Mengembalikan log history, log terbaru ada di bagian bawah
     res.json({ logs: logHistory });
 });
 
