@@ -5,7 +5,6 @@ const chromium = require('@sparticuz/chromium');
 const path = require('path');
 
 const app = express();
-// Menggunakan process.env.PORT untuk Vercel
 const PORT = process.env.PORT || 3000; 
 
 // --- Log Management ---
@@ -39,10 +38,9 @@ async function extractDirectLink(shareUrl) {
         // --- Solusi Serverless/Chromium Fix ---
         logToHistory('Meluncurkan Chromium dengan konfigurasi Vercel...');
         browser = await puppeteer.launch({
-            // Argumen harus mencakup --no-sandbox
             args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security'], 
             defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
+            executablePath: await chromium.executablePath(), // Menggunakan jalur Chromium yang sudah terinstal
             headless: chromium.headless,
             ignoreHTTPSErrors: true,
         });
@@ -71,7 +69,7 @@ async function extractDirectLink(shareUrl) {
         logToHistory('Menavigasi ke halaman sharing...');
         await page.goto(shareUrl, { waitUntil: 'domcontentloaded' });
 
-        // Contoh Selector Terabox
+        // Contoh Selector Terabox (GANTI INI JIKA ADA PERUBAHAN)
         const downloadButtonSelector = '.x-btn-main.g-btn'; 
         
         try {
@@ -80,7 +78,7 @@ async function extractDirectLink(shareUrl) {
             await page.click(downloadButtonSelector);
             logToHistory('Tombol unduh berhasil diklik. Menunggu tautan muncul...');
             
-            await page.waitForTimeout(5000); // Beri waktu untuk permintaan jaringan selesai
+            await page.waitForTimeout(5000); 
             
         } catch (error) {
             logToHistory('Peringatan: Tombol unduh tidak ditemukan atau error klik.');
