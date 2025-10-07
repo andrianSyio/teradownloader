@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terabox Link Extractor (Demo)</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        input[type="text"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+        #result { margin-top: 20px; padding: 15px; border: 1px dashed #007bff; background-color: #e6f0ff; word-break: break-all; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Terabox Link Extractor (Konsep Edukasi)</h1>
+        <p>Masukkan tautan *sharing* Terabox di bawah ini untuk mencoba mengekstrak tautan langsung.</p>
+        
+        <input type="text" id="linkInput" placeholder="Contoh: https://teraboxapp.com/s/abcdefg" required>
+        <button onclick="extractLink()">Ekstrak Tautan</button>
+        
+        <div id="status" style="margin-top: 15px; font-weight: bold;"></div>
+        <div id="result">
+            <strong>Tautan Langsung:</strong> <span id="directLink">Menunggu input...</span>
+        </div>
+    </div>
+
+    <script>
+        async function extractLink() {
+            const linkInput = document.getElementById('linkInput').value;
+            const statusDiv = document.getElementById('status');
+            const directLinkSpan = document.getElementById('directLink');
+
+            if (!linkInput) {
+                statusDiv.textContent = 'Harap masukkan tautan.';
+                statusDiv.className = 'error';
+                return;
+            }
+
+            statusDiv.textContent = 'Memproses... Harap tunggu, ini mungkin memakan waktu 30-60 detik karena Puppeteer harus dijalankan.';
+            statusDiv.className = '';
+            directLinkSpan.textContent = 'Memproses...';
+
+            try {
+                const response = await fetch(`/api/download?link=${encodeURIComponent(linkInput)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.textContent = 'Sukses! Tautan berhasil diekstrak.';
+                    statusDiv.className = '';
+                    directLinkSpan.innerHTML = `<a href="${data.directLink}" target="_blank">${data.directLink}</a>`;
+                } else {
+                    statusDiv.textContent = `Gagal: ${data.error || 'Terjadi kesalahan pada server.'}`;
+                    statusDiv.className = 'error';
+                    directLinkSpan.textContent = 'Tidak dapat mendapatkan tautan.';
+                }
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.textContent = 'Error koneksi ke API.';
+                statusDiv.className = 'error';
+                directLinkSpan.textContent = 'Error.';
+            }
+        }
+    </script>
+</body>
+</html>
