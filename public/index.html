@@ -38,7 +38,6 @@
     <script>
         let logInterval;
 
-        // 1. Fungsi untuk memperbarui log secara berkala
         async function fetchLogs() {
             try {
                 const response = await fetch('/api/logs');
@@ -46,20 +45,14 @@
                 
                 const logViewer = document.getElementById('logViewer');
                 
-                // Format log menjadi baris-baris HTML
                 logViewer.innerHTML = data.logs.map(log => `<div>${log}</div>`).join('');
-                
-                // Gulir ke bawah agar log terbaru terlihat
                 logViewer.scrollTop = logViewer.scrollHeight;
 
             } catch (error) {
-                // Log viewer tidak akan berhenti jika fetch gagal
                 console.error("Gagal mengambil log:", error);
-                document.getElementById('logViewer').innerHTML += `<div>[ERROR] Gagal koneksi ke log API.</div>`;
             }
         }
         
-        // 2. Fungsi utama untuk memulai ekstraksi
         async function extractLink() {
             const linkInput = document.getElementById('linkInput').value;
             const statusDiv = document.getElementById('status');
@@ -72,14 +65,14 @@
                 return;
             }
 
-            // Mulai/Reset Log Interval
+            // Mulai polling log setiap 2 detik
             clearInterval(logInterval);
-            logInterval = setInterval(fetchLogs, 2000); // Ambil log setiap 2 detik
+            logInterval = setInterval(fetchLogs, 2000); 
 
             statusDiv.textContent = '🚀 Memulai proses scraping... (Memakan waktu)';
             statusDiv.className = '';
             directLinkSpan.textContent = 'Menunggu log server...';
-            extractBtn.disabled = true; // Nonaktifkan tombol saat proses berjalan
+            extractBtn.disabled = true; 
 
             try {
                 const response = await fetch(`/api/download?link=${encodeURIComponent(linkInput)}`);
@@ -90,22 +83,23 @@
                     directLinkSpan.innerHTML = `<a href="${data.directLink}" target="_blank">${data.directLink}</a>`;
                 } else {
                     statusDiv.textContent = `❌ Gagal: ${data.error || 'Terjadi kesalahan tak terduga.'} Lihat log di bawah.`;
+                    statusDiv.className = 'error';
                     directLinkSpan.textContent = 'Tidak dapat mendapatkan tautan.';
                 }
 
             } catch (error) {
                 console.error(error);
                 statusDiv.textContent = '❌ Error koneksi ke API.';
+                statusDiv.className = 'error';
                 directLinkSpan.textContent = 'Error.';
             } finally {
-                extractBtn.disabled = false; // Aktifkan kembali tombol
-                clearInterval(logInterval); // Hentikan pengambilan log setelah selesai
+                extractBtn.disabled = false; 
+                clearInterval(logInterval); 
                 fetchLogs(); // Ambil log terakhir
             }
         }
 
-        // Mulai pengambilan log pertama kali saat halaman dimuat (untuk menunjukkan status awal)
-        fetchLogs(); 
+        fetchLogs(); // Ambil log saat halaman pertama kali dimuat
     </script>
 </body>
 </html>
