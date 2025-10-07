@@ -1,0 +1,16 @@
+{
+    "functions": {
+        "api/download": {
+            "memory": 2048,
+            "maxDuration": 60
+        },
+        "api/logs": {
+            "memory": 2048,
+            "maxDuration": 60
+        }
+    },
+    "rewrites": [
+        { "source": "/api/(.*)", "destination": "/server.js" },
+        { "source": "/(.*)", "destination": "/public/index.html" }
+    ]
+}
